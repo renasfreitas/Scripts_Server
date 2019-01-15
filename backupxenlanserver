@@ -1,0 +1,93 @@
+#!/bin/bash
+# Implementado em 20/10/2014
+# Por: Fabricio Machado - Suporte Intranetworks
+# Fonte: http://agerum.blogspot.com.br/2011_10_16_archive.html
+#Desatachar o disco USB para conseguir fazer o Snapshot
+#/home/intranetworks/bin/usbmap-to-vm.sh detach
+#
+#Cria uma variavel data com o formato da data que quero pra compor o nome do arquivo de backup
+time=$(date --date "now" +%d_%m_%y_%H:%M)
+#
+#Decobrir quais as VMs existentes.
+#
+vms="$(xe vm-list | grep "name-label" | grep -v -e "vm_cliente" -e "Control domain"| tr -s " " | cut -d " " -f 5| sort -r|grep -v -e "webserver4"|grep -v -e "webserver")"
+#
+# Diretorio onde sera feito o backup. Pode ser via NFS...
+dirBack=/mnt/backup
+#
+#Separador de campo para o "for". Previne erros no caso de espacos
+# no nome das VMs
+#IFS=""
+#
+#Antes de comecar vamos fazer backup dos Metadados do Xen que possuem todos os parametros das VMs e UUIDs de maquinas virtuais, placas e discos.
+xe pool-dump-database file-name=$dirBack/bkp_metadados_$time
+ {
+         echo -n "`date` "
+	logger -s -p local6.info -t "XenBackup" -s "$vm - OK Metadados Xen"
+        }||{
+         echo -n "`date` "
+  	logger -s -p local6.info -t "XenBackup" -s "$vm - ERR Metadados Xen"
+        exit 6
+        }
+#
+#Inicio do for. Cada loop faz backup de uma VM.
+for vm in $(echo $vms)
+do
+#
+#Agora componho o nome do arquivo de backup
+snapName=$vm-bk-$time
+#Aqui crio um snapshot. Ele eh necessario para nao precisar parar a VM. O backup eh feito com ela em producao.
+ID=$(xe vm-snapshot vm=$vm new-name-label=$snapName &&
+	{
+        logger -t "XenBackup" -s "$vm - OK Passo 1"
+        }||{
+        logger -t "XenBackup" -s "$vm - ERR Passo 1"
+        echo 1
+        })
+#
+#Na criacao do snap acima, a variavel ID recebe o UID do snap.No caso de erro, ela recebe "1"
+#O logger joga o log joga no /var/log/messages
+#Abaixo faco um teste pra checar se deu erro.
+if [ "$ID" == "1" ]
+then
+        exit 1
+fi
+#
+#Pra essa tarefa, uso o ID obtido no passo anterior.
+xe template-param-set is-a-template=false uuid=$ID &&
+	{
+        logger -t "XenBackup" -s "$vm - OK Passo 2"
+        }||{
+        logger -t "XenBackup" -s "$vm - ERR Passo 2"
+        exit 2
+        }
+#
+#Perceba o uso das variaveis. Nao vah se perder ;)
+xe vm-export vm=$snapName  filename=$dirBack/$snapName
+	{
+        logger -t "XenBackup" -s "$vm - OK Passo 3"
+        }||{
+        logger -t "XenBackup" -s "$vm - ERR Passo 3"
+        exit 3
+        }
+#
+#Agora que a VM criada a partir do SnapShot ja foi exportada, podemos descarta-la:
+xe vm-uninstall vm=$snapName force=true
+	{
+        logger -t "XenBackup" -s "$vm - OK Passo 4"
+        }||{
+        logger -t "XenBackup" -s "$vm - ERR Passo 4"
+        exit 4
+        }
+#Essa parte compacta os backups para economizar espaco pode ser ativada ou desativada
+#
+gzip $dirBack/$snapName
+	{
+       logger -t "XenBackup" -s "$vm - OK Passo 5"
+       }||{
+       logger -t "XenBackup" -s "$vm - ERR Passo 5"
+       exit 5
+       }
+#/home/intranetworks/bin/usbmap-to-vm.sh attach
+done
+exit 0
