@@ -1,0 +1,63 @@
+# Esse backup pega os arquivos que estão em "DATALIST" e exporta para um mesmo arquivo em tar 
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin/X11:/usr/X11R6/bin:/root/bin:/var/qmail/bin
+
+
+minspace=10485760 # 10GB
+maxdays=1
+dstdir=/mnt/bkp
+backupfs=/
+now=`date +%Y%m%d`
+
+CFGLIST=/home/smartcorp/etc/backuplist
+DATALIST=/home/smartcorp/etc/backupdata
+EXCLUDELIST=/home/smartcorp/etc/backupexclude
+
+
+echo -n "`date` "
+logger -s -p local6.info -t "`basename $0`[$$]" "iniciado" 2>&1
+
+# control file
+touch $dstdir/backuptime
+
+# executa script de inicializacao externo
+
+
+# VERIFICA DESTINO
+if [ -x /home/smartcorp/bin/backuphd.pre ] ; then
+        echo -n "`date` " ; logger -s -p local6.info -t "`basename $0`[$$]" "Iniciando script backup.pre" 2>&1
+        if ! /home/smartcorp/bin/backuphd.pre ; then
+                echo -n "`date` " ; logger -s -p local6.info -t "`basename $0`[$$]" "Problemas na execucao do script backup.pre" 2>&1
+                exit 1
+        fi
+        echo -n "`date` " ; logger -s -p local6.info -t "`basename $0`[$$]" "Script backup.pre encerrado com sucesso" 2>&1
+fi
+
+
+#[ -x /home/smartcorp/bin/backuphd.pre ] && /home/smartcorp/bin/backuphd.pre
+#find ${dstdir} -type f -name "backup-*" -mtime +${maxdays} -exec rm -f {} \;
+
+# check for free space
+freespace=`df | tr -s ' ' | grep " ${backupfs}$" | cut -f 4 -d' '`
+if [ $freespace -le $minspace ] ; then
+    date
+    logger -s -p local6.info -t "`basename $0`[$$]" "Backup nao sera realizado porque ha menos do que ${minspace} KB livres em ${backupfs}" 2>&1
+    logger -s -p local6.info -t "`basename $0`[$$]" "Por favor, tome providencias para liberar espaco para evitar problemas com o servidor." 2>&1
+    df
+    exit 1
+fi
+
+# create archive
+[ -f $EXCLUDELIST ] || touch $EXCLUDELIST
+cd /
+nice tar -jcf ${dstdir}/backup-${now}.tar.bz2 `cat $CFGLIST $DATALIST` -X $EXCLUDELIST
+
+# check for free space again
+freespace=`df | tr -s ' ' | grep " ${backupfs}$" | cut -f 4 -d' '`
+if [ $freespace -lt $minspace ] ; then
+    date
+    logger -s -p local6.info -t "`basename $0`[$$]" "Atencao: apos o backup restaram menos do que ${minspace} KB livres em ${backupfs}" 2>&1
+    logger -s -p local6.info -t "`basename $0`[$$]" "Por favor, tome providencias para liberar espaco para evitar problemas com o servidor." 2>&1
+    df
+fi
+
