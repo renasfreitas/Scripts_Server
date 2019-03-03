@@ -1,0 +1,14 @@
+#!/bin/bash
+MOUNT_POINT=/mnt/bkp
+
+if ! mountpoint "$MOUNT_POINT" ; then
+        echo "Compartilhamento nao montado!"
+        exit 1
+fi
+
+#Desmonta compartilhamento
+
+cd /
+/bin/umount -l /mnt/bkp
+exit 0
+# end of "backuphd-multi.post"
