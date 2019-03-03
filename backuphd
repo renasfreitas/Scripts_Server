@@ -1,4 +1,4 @@
-# Esse backup pega os arquivos que estão em "DATALIST" e exporta para um mesmo arquivo em tar 
+# Esse backup pega os arquivos que estão na variavel "DATALIST" e exporta para um arquivo .tar 
 
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin/X11:/usr/X11R6/bin:/root/bin:/var/qmail/bin
 
