@@ -1,5 +1,5 @@
 # Esse backup pega os arquivos que estão na variavel "DATALIST" e exporta para um arquivo .tar 
-
+# Não eras bar
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin/X11:/usr/X11R6/bin:/root/bin:/var/qmail/bin
 
 

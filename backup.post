@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Caminho que serah desmontado apos final do backup
 MOUNT_POINT=/mnt/bkp
 
 if ! mountpoint "$MOUNT_POINT" ; then
@@ -9,6 +11,6 @@ fi
 #Desmonta compartilhamento
 
 cd /
-/bin/umount -l /mnt/bkp
+/bin/umount -l $MOUNT_POINT
 exit 0
 # end of "backuphd-multi.post"

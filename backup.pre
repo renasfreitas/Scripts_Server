@@ -1,19 +1,19 @@
+#Scripts utilizado para montar diretorios antes de iniciar o backup
+
 #!/bin/bash
 
 PATH=/usr/lib64/qt-3.3/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+
+# Caminho que serah montado
 MOUNT_POINT=/mnt/bkp
-#user="bkp_hdmulti"
-#passwd="733221979458"
 compartilhamento="//192.168.0.244/zimbra_backup$"
 
 # Verifica se eh possivel montar o storage:
 cd /
 umount -l $MOUNT_POINT 
 
-#mount -t cifs -v //192.168.0.244/zimbra_backup$ $MOUNT_POINT -o username=bkp_hdmulti,password=733221979458,domain="termoloss.com.br",sec=ntlm,uid=zimbra
-#mount.cifs //192.168.0.244/zimbra_backup$ /mnt/bkp -o username=bkp_hdmulti,password=733221979458
-
-mount -t cifs -v //192.168.0.244/zimbra_backup$ $MOUNT_POINT -o username=bkp_hdmulti,password=733221979458,domain="termoloss.com.br",sec=ntlm,uid=zimbra
+# Montando diretorio
+mount -t cifs -v $compartilhamento $MOUNT_POINT -o username=bkp_hdmulti,password=733221979458,domain="termoloss.com.br",sec=ntlm,uid=zimbra
 
 
 if ! mountpoint "$MOUNT_POINT" ; then
